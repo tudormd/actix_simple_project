@@ -1,0 +1,24 @@
+[package]
+name = "actix"
+version = "0.1.0"
+edition = "2021"
+authors =["Bostan Tudor"]
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = { version= "4" }
+serde = { version = "1", features = ["derive"] } # Is a framework for serializing and deserializing Rust data structures. E.g. convert Rust structs to JSON.
+env_logger = "0.9"
+futures = "0.3" # Is a library for doing asynchronous programming in rust
+
+# Is a driver for connecting to MongoDB. It also specifies the required version and the feature type(Asynchronous API).
+[dependencies.mongodb]
+features = ["tokio-runtime"]
+default-features = false
+version = "2.3.0"
+
+
+[dev-dependencies]
+tokio = { version = "1.20.1", features = ["full"] }
