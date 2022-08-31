@@ -6,6 +6,7 @@ pub struct Settings {
     pub port: u16,
     /// The MongoDB database url.
     pub database_url: String,
+    pub amqp_addr: String,
 }
 
 impl Settings {
@@ -17,6 +18,7 @@ impl Settings {
             .parse()
             .expect("PORT must be a number");
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL expected");
-        Self { port, database_url }
+        let amqp_addr = env::var("AMQP_ADDR").expect("AMQP_ADDR expected");
+        Self { port, database_url, amqp_addr }
     }
 }

@@ -1,3 +1,4 @@
 [env]
 PORT = { value = "8080", force = true }
 DATABASE_URL = { value = "mongodb://localhost:27017", force = true }
+AMQP_ADDR = { value =  "amqp://127.0.0.1:5672/%2f", force = true}

@@ -1,5 +1,5 @@
 use crate::model::user_model::User;
-use crate::MongoRepo;
+use crate::{MongoRepo, PubSub};
 use actix_web::{
     delete, get, post, put,
     web::{Data, Json, Path},
@@ -36,7 +36,7 @@ pub async fn get_user(db: Data<MongoRepo>, path: Path<String>) -> HttpResponse {
 }
 
 #[post("/user")]
-pub async fn create_user(db: Data<MongoRepo>, new_user: Json<User>) -> HttpResponse {
+pub async fn create_user(db: Data<MongoRepo>, pub_sub: Data<PubSub>,  new_user: Json<User>) -> HttpResponse {
     let data = User {
         id: None,
         first_name: new_user.first_name.to_owned(),
@@ -46,7 +46,11 @@ pub async fn create_user(db: Data<MongoRepo>, new_user: Json<User>) -> HttpRespo
     let result = db.create_user(data).await;
 
     match result {
-        Ok(_) => HttpResponse::Ok().body("user added"),
+        Ok(_) => {
+            pub_sub.publish_user_created(&new_user).await.expect("Failed to publish");
+
+            return HttpResponse::Ok().body("user added");
+        }
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }
 }

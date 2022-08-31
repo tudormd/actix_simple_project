@@ -7,7 +7,7 @@ use mongodb::results::{DeleteResult, UpdateResult};
 use mongodb::{
     bson::extjson::de::Error, options::ClientOptions, results::InsertOneResult, Client, Collection,
     Database,
-}; //add this
+};
 
 const DB_NAME: &str = "myApp";
 const COLL_NAME: &str = "users";
@@ -19,10 +19,7 @@ pub struct MongoRepo {
 impl MongoRepo {
     pub async fn init() -> Self {
         // Read the application settings from the env.
-        let Settings {
-            port: _port,
-            database_url,
-        } = Settings::from_env();
+        let Settings { database_url, .. } = Settings::from_env();
         // Create the database connection for the application.
         let options: ClientOptions = ClientOptions::parse(database_url).await.unwrap();
         let client: Client = Client::with_options(options).unwrap();
@@ -60,6 +57,7 @@ impl MongoRepo {
             .await
             .ok()
             .expect("Error getting user's detail");
+        println!("{:?}", user_detail);
         Ok(user_detail.unwrap())
     }
 
