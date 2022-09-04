@@ -1,5 +1,5 @@
 use crate::model::user_model::User;
-use crate::{MongoRepo, PubSub};
+use crate::{MongoRepo, PubSub, RedisClient};
 use actix_web::{
     delete, get, post, put,
     web::{Data, Json, Path},
@@ -7,6 +7,7 @@ use actix_web::{
 };
 use mongodb::bson::extjson::de::Error;
 use mongodb::bson::oid::ObjectId;
+use serde_json::Value::Null;
 
 #[get("/users")]
 pub async fn get_all_users(db: Data<MongoRepo>) -> HttpResponse {
@@ -18,14 +19,29 @@ pub async fn get_all_users(db: Data<MongoRepo>) -> HttpResponse {
 }
 
 #[get("/user/{id}")]
-pub async fn get_user(db: Data<MongoRepo>, path: Path<String>) -> HttpResponse {
+pub async fn get_user(
+    db: Data<MongoRepo>,
+    redis_client: Data<RedisClient>,
+    path: Path<String>,
+) -> HttpResponse {
     let id = path.into_inner();
     if id.is_empty() {
         return HttpResponse::BadRequest().body("invalid ID");
     }
+
+    let user_from_redis = redis_client.get_value(&id).await.unwrap();
     let user_detail = db.get_user(&id).await;
+
+    if user_from_redis != Null {
+        return HttpResponse::Ok().json(user_from_redis);
+    }
+
     match user_detail {
-        Ok(user) => HttpResponse::Ok().json(user),
+        Ok(user) => {
+            redis_client.set_value::<User>(&id, &user).await;
+
+            return HttpResponse::Ok().json(user);
+        }
         Err(err) => match err {
             Error::InvalidObjectId(_) => {
                 HttpResponse::BadRequest().body("User with specified ID not found!")
@@ -36,7 +52,11 @@ pub async fn get_user(db: Data<MongoRepo>, path: Path<String>) -> HttpResponse {
 }
 
 #[post("/user")]
-pub async fn create_user(db: Data<MongoRepo>, pub_sub: Data<PubSub>,  new_user: Json<User>) -> HttpResponse {
+pub async fn create_user(
+    db: Data<MongoRepo>,
+    pub_sub: Data<PubSub>,
+    new_user: Json<User>,
+) -> HttpResponse {
     let data = User {
         id: None,
         first_name: new_user.first_name.to_owned(),
@@ -47,7 +67,10 @@ pub async fn create_user(db: Data<MongoRepo>, pub_sub: Data<PubSub>,  new_user: 
 
     match result {
         Ok(_) => {
-            pub_sub.publish_user_created(&new_user).await.expect("Failed to publish");
+            pub_sub
+                .publish_user_created(&new_user)
+                .await
+                .expect("Failed to publish");
 
             return HttpResponse::Ok().body("user added");
         }
@@ -93,7 +116,11 @@ pub async fn update_user(
 }
 
 #[delete("/user/{id}")]
-pub async fn delete_user(db: Data<MongoRepo>, path: Path<String>) -> HttpResponse {
+pub async fn delete_user(
+    db: Data<MongoRepo>,
+    redis_client: Data<RedisClient>,
+    path: Path<String>,
+) -> HttpResponse {
     let id = path.into_inner();
     if id.is_empty() {
         return HttpResponse::BadRequest().body("invalid ID");
@@ -102,6 +129,7 @@ pub async fn delete_user(db: Data<MongoRepo>, path: Path<String>) -> HttpRespons
     match result {
         Ok(res) => {
             return if res.deleted_count == 1 {
+                let _ = redis_client.del_value(&id).await;
                 HttpResponse::Ok().json("User successfully deleted!")
             } else {
                 HttpResponse::NotFound().json("User with specified ID not found!")

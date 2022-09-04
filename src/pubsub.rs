@@ -3,7 +3,6 @@ use crate::model::user_model::User;
 use lapin::options::{BasicPublishOptions, ExchangeDeclareOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, Channel, Connection, ConnectionProperties, ExchangeKind, Result};
-use std::env;
 
 #[derive(Debug)]
 pub struct PubSub {
@@ -13,8 +12,7 @@ pub struct PubSub {
 impl PubSub {
     pub async fn init() -> Self {
         let Settings { amqp_addr, .. } = Settings::from_env();
-        let addr = env::var(amqp_addr).unwrap();
-        let conn = Connection::connect(&addr, ConnectionProperties::default())
+        let conn = Connection::connect(&amqp_addr, ConnectionProperties::default())
             .await
             .unwrap();
 

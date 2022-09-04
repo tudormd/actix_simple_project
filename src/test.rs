@@ -16,7 +16,7 @@ async fn test() {
             .app_data(db_data.clone())
             .service(create_user)
             .service(get_user)
-            .service(get_all_users)
+            .service(get_all_users),
     )
     .await;
 

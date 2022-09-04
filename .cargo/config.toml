@@ -2,3 +2,4 @@
 PORT = { value = "8080", force = true }
 DATABASE_URL = { value = "mongodb://localhost:27017", force = true }
 AMQP_ADDR = { value =  "amqp://127.0.0.1:5672/%2f", force = true}
+REDIS_URL = { value =  "redis://127.0.0.1:6379/1", force = true}

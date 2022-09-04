@@ -57,7 +57,7 @@ impl MongoRepo {
             .await
             .ok()
             .expect("Error getting user's detail");
-        println!("{:?}", user_detail);
+
         Ok(user_detail.unwrap())
     }
 
